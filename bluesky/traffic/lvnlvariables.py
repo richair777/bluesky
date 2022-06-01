@@ -7,6 +7,8 @@ Date: 24-12-2021
 
 
 import numpy as np
+from numpy import ndarray
+
 import bluesky as bs
 from bluesky.core import Entity, timed_function
 from bluesky.tools import misc, geo
@@ -41,6 +43,7 @@ class LVNLVariables(Entity):
     Created by: Bob van Dillen
     Date: 24-12-2021
     """
+    dtg_tbar: ndarray
 
     def __init__(self):
         super().__init__()
@@ -61,6 +64,7 @@ class LVNLVariables(Entity):
             self.tracklbl   = np.array([], dtype=np.bool)  # Show track label
             self.uco        = np.array([], dtype=np.bool)  # Under Control
             self.wtc        = []                           # Wake Turbulence Category
+            self.trackmiles = np.array([])                 # Distance to go along route
 
     def create(self, n=1):
         """
@@ -78,6 +82,32 @@ class LVNLVariables(Entity):
         self.autolabel[-n:] = True
         self.tracklbl[-n:]  = True
         self.mlbl[-n:]      = False
+
+    def get_stuff(self, idx):
+        own_lat = bs.traf.lat
+        own_lon = bs.traf.lon
+        wpt_lat = bs.traf.actwp.lat
+        wpt_lon = bs.traf.actwp.lon
+        route = bs.traf.ap.route
+        print("lenght: ",len(route[idx].wpname))
+
+        tm_total = 0.0
+        print("gezeik: ", route[idx].wpname, route[idx].wpname[route[idx].iactwp])
+        if len(route[idx].wpname) > 1:
+            for i in range(0, len(route[idx].wpname) - 1):
+
+                if route[idx].wpname[i] == route[idx].wpname[route[idx].iactwp]:
+                    j = i
+
+            for i in range(j, len(route[idx].wpname) - 1):
+                section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                route[idx].wplon[i + 1])
+                tm_total = tm_total + section_distance
+
+        distance_to_go = tm_total + geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])
+        #print ("DTg: ", distance_to_go)
+
+        return distance_to_go
 
     @timed_function(name='lvnlvars', dt=0.1)
     def update(self):
@@ -130,19 +160,56 @@ class LVNLVariables(Entity):
 
         # --------------- T-Bar DTG ---------------
 
+        inirsi = misc.get_indices(self.arr, "NIRSI_RIVER")
+        #print (inirsi)
         inirsi_gal1 = misc.get_indices(self.arr, "NIRSI_GAL01")
+        #print(inirsi_gal1)
         inirsi_gal2 = misc.get_indices(self.arr, "NIRSI_GAL02")
         inirsi_603 = misc.get_indices(self.arr, "NIRSI_AM603")
+
+        self.dtg_tbar[inirsi] = geo.kwikdist_matrix(bs.traf.lat[inirsi], bs.traf.lon[inirsi],
+                                                         np.ones(len(inirsi)) * 52.58387777777778,
+                                                         np.ones(len(inirsi)) * 4.513372222222222)
+
+        #print("idx", type(inirsi_603))
+        #print(type(bs.traf.lat))
+        #print(type(bs.traf.id))
 
         self.dtg_tbar[inirsi_gal1] = geo.kwikdist_matrix(bs.traf.lat[inirsi_gal1], bs.traf.lon[inirsi_gal1],
                                                          np.ones(len(inirsi_gal1))*52.47962777777778,
                                                          np.ones(len(inirsi_gal1))*4.513372222222222)
+        #self.dtg_tbar[inirsi_gal1] = geo.kwikdist_matrix(bs.traf.lat[inirsi_gal1], bs.traf.lon[inirsi_gal1],
+        #                                                 np.ones(len(inirsi_gal1)) * 52.58387777777778,
+        #                                                 np.ones(len(inirsi_gal1)) * 4.513372222222222)
+
+        #self.dtg_tbar[inirsi_gal2] = geo.kwikdist_matrix(bs.traf.lat[inirsi_gal2], bs.traf.lon[inirsi_gal2],
+        #                                                 np.ones(len(inirsi_gal2))*52.58375277777778,
+        #                                                 np.ones(len(inirsi_gal2))*4.342225)
+
         self.dtg_tbar[inirsi_gal2] = geo.kwikdist_matrix(bs.traf.lat[inirsi_gal2], bs.traf.lon[inirsi_gal2],
-                                                         np.ones(len(inirsi_gal2))*52.58375277777778,
-                                                         np.ones(len(inirsi_gal2))*4.342225)
+                                                         np.ones(len(inirsi_gal2)) * 52.58387777777778,
+                                                         np.ones(len(inirsi_gal2)) * 4.513372222222222)
+
+        #self.dtg_tbar[inirsi_603] = geo.kwikdist_matrix(bs.traf.lat[inirsi_603], bs.traf.lon[inirsi_603],
+        #                                                np.ones(len(inirsi_603))*52.68805555555555,
+        #                                                np.ones(len(inirsi_603))*4.513333333333334)
+
         self.dtg_tbar[inirsi_603] = geo.kwikdist_matrix(bs.traf.lat[inirsi_603], bs.traf.lon[inirsi_603],
-                                                        np.ones(len(inirsi_603))*52.68805555555555,
-                                                        np.ones(len(inirsi_603))*4.513333333333334)
+                                                         np.ones(len(inirsi_603)) * 52.58387777777778,
+                                                         np.ones(len(inirsi_603)) * 4.513372222222222)
+
+        # print(self.dtg_tbar[inirsi_gal2])
+        # print(inirsi_gal2)
+        # print(inirsi_gal1)
+        # print(inirsi_603)
+        # print(self.dtg_tbar[inirsi_gal1])
+        # print(self.dtg_tbar[inirsi_603])
+
+        self.trackmiles = np.ones(len(self.arr))
+        bla = bs.traf.ap.route
+        for i in range(0, len(self.trackmiles)):
+            self.trackmiles[i] = self.get_stuff(i)
+        #print ("bla: ", bla[1].wpname)
 
         return
 

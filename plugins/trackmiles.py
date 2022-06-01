@@ -41,6 +41,7 @@ class Trackmiles(core.Entity):
         self.trackmileslbl = None
         self.bla = 987
         self.distance_to_go = []
+        print ("traf: ", traf)
 
         # Set update function
         bs.net.actnodedata_changed.connect(self.update_trackmiles)
@@ -92,6 +93,29 @@ class Trackmiles(core.Entity):
         if route[0].wpname[route[0].iactwp] == "NIRSI":
             print("Volgende waypoint is NIRSI")
 
+    def get_trackmiles(self):
+        self.own_lat = traf.lat
+        self.own_lon = traf.lon
+        self.wpt_lat = traf.actwp.lat
+        self.wpt_lon = traf.actwp.lon
+        route = traf.ap.route
+
+        tm_total = 0.0
+        for i in range(0, len(route[0].wpname) - 1):
+            if route[0].wpname[i] == route[0].wpname[route[0].iactwp]:
+                j = i
+
+        for i in range(j, len(route[0].wpname) - 1):
+            # print (i, route[0].wpname[i])
+            section_distance = geo.kwikdist(route[0].wplat[i], route[0].wplon[i], route[0].wplat[i + 1],
+                                            route[0].wplon[i + 1])
+            tm_total = tm_total + section_distance
+
+        self.distance_to_go = tm_total + geo.kwikdist(self.own_lat, self.own_lon, self.wpt_lat, self.wpt_lon)
+        blob = 321
+        return blob
+
+
     # You can create new stack commands with the stack.command decorator.
     # By default, the stack command name is set to the function name.
     # The default argument type is a case-sensitive word. You can indicate different
@@ -126,28 +150,16 @@ class Trackmiles(core.Entity):
 
     def update_trackmiles(self, nodeid, nodedata, changed_elems):
         """
-        Function: Update T-Bar graphics
-        Args:
-            nodeid:         Node identifier []
-            nodedata:       Node data [class]
-            changed_elems:  Changed elements [list]
-        Returns: -
-
-        Created by: Bob van Dillen
-        Date: 25-2-2022
         """
 
         if self.initialized:
             if 'ACDATA' in changed_elems:
                 # Update TM label
                 rawlabel = ''
-                #self.update()
                 for idx in range(len(nodedata.acdata.id)):
                     acid = nodedata.acdata.id[idx]
-                    if self.distance_to_go:
-                        dtg = self.distance_to_go[0]
-                    else:
-                        dtg = self.bla
+                    dtg = nodedata.acdata.trackmiles[idx]
+
 
                     tracklbl = nodedata.acdata.tracklbl[idx]
 
