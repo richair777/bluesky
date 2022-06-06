@@ -69,7 +69,6 @@ class Trackmiles(core.Entity):
         self.ble = traf.actwp.lon
         self.iets = traf.actwp.curleglen
         route = traf.ap.route
-        print(route[0].wpname)
 
         tm_total = 0.0
         for i in range(0, len(route[0].wpname) - 1):
@@ -77,7 +76,6 @@ class Trackmiles(core.Entity):
                 j = i
 
         for i in range(j, len(route[0].wpname) - 1):
-            # print (i, route[0].wpname[i])
             section_distance = geo.kwikdist(route[0].wplat[i], route[0].wplon[i], route[0].wplat[i + 1],
                                             route[0].wplon[i + 1])
             tm_total = tm_total + section_distance
@@ -106,7 +104,6 @@ class Trackmiles(core.Entity):
                 j = i
 
         for i in range(j, len(route[0].wpname) - 1):
-            # print (i, route[0].wpname[i])
             section_distance = geo.kwikdist(route[0].wplat[i], route[0].wplon[i], route[0].wplat[i + 1],
                                             route[0].wplon[i + 1])
             tm_total = tm_total + section_distance
@@ -174,5 +171,4 @@ class Trackmiles(core.Entity):
     def nextw(self, acid: 'acid'):
         bla = traf
         bli = self.distance_to_go
-        #print (self.own_lat, self.wpt_lat, self.iets)
         return True, f'The result for {traf.id[acid]} is set to {bli} NM.'
