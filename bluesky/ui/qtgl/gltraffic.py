@@ -660,6 +660,7 @@ class Traffic(glh.RenderObject, layer=100):
         """
         self.glsurface.makeCurrent()
         actdata = bs.net.get_nodedata()
+        print("nodedata: ", actdata.acdata.id)
         naircraft = len(actdata.acdata.id)
         tbar_labelpos = np.empty((min(naircraft, MAX_NAIRCRAFT), 2), dtype=np.float32)
 
@@ -704,7 +705,7 @@ class Traffic(glh.RenderObject, layer=100):
 
         # Update
         for i in range(len(actdata.acdata.id)):
-            tbar_labelpos[i] = [-position[1]*text_width, position[0]*text_height]
+            tbar_labelpos[i] = [-position[1]*text_width, 1.5*position[0]*text_height]
         self.tbar_labelpos = tbar_labelpos
         self.tbar_lbloffset.update(np.array(self.tbar_labelpos, dtype=np.float32))
 
@@ -801,7 +802,15 @@ def applabel(actdata, data, i):
 
         # Line 4
         label += '%-3s' % leading_zeros(data.gs[i]/kts)[:3]
-        if data.wtc[i].upper() == 'H' or data.wtc[i].upper() == 'J':
+        #For ICAO WTC, only show WTC-cat when H or J
+        #Also, prepare for RECAT, with cat A through F
+        if data.wtc[i].upper() == 'H' or data.wtc[i].upper() == 'J' \
+                or data.wtc[i].upper() == 'A'\
+                or data.wtc[i].upper() == 'B'\
+                or data.wtc[i].upper() == 'C'\
+                or data.wtc[i].upper() == 'D'\
+                or data.wtc[i].upper() == 'E'\
+                or data.wtc[i].upper() == 'F':
             label += '%-1s' % str(data.wtc[i])[:1]
         else:
             label += '%-1s' % ' '
