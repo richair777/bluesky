@@ -62,7 +62,7 @@ class trackmiles_bar(core.Entity):
             self.trackmiles_bar = Traffic()
 
             # Initialize plugin t-bar aircraft and label
-            self.trackmiles_bar.plugin_rangebar(blocksize=(8, 1), position=(0.5, 3))
+            self.trackmiles_bar.plugin_rangebar(blocksize=(8, 2), position=(1.2, 3))
 
             # Update label with current data
             rawlabel = ''
@@ -76,6 +76,17 @@ class trackmiles_bar(core.Entity):
         else:
             self.trackmiles_bar.show_tbar_ac = not self.trackmiles_bar.show_tbar_ac
 
+    def get_intrailsep_from_next_in_seq(self, dtg, dtg_list):
+        intrailsep = -1
+        for i in range(len(dtg_list)):
+            dist = dtg - dtg_list[i]
+            if dist <= 0:
+                break
+            else:
+                intrailsep = dist
+
+        return intrailsep
+
     def update_trackmilesbar(self, nodeid, nodedata, changed_elems):
         """
 
@@ -87,6 +98,14 @@ class trackmiles_bar(core.Entity):
                 lon = []
                 lat = []
 
+                # Sort the trackmiles for the sequence and in trail separations
+                sorted_tm = np.sort(nodedata.acdata.trackmiles)
+                # print('tm sort: ', sorted_tm)
+                # intrail_sep = np.ones(len(nodedata.acdata.trackmiles)-1)
+                # print(intrail_sep)
+                # for i in range(0,len(nodedata.acdata.id)-1):
+                #     intrail_sep[i] = sorted_tm[i+1] - sorted_tm[i]
+
                 for idx in range(len(nodedata.acdata.id)):
                     acid = nodedata.acdata.id[idx]
                     dtg = nodedata.acdata.trackmiles[idx]
@@ -97,10 +116,6 @@ class trackmiles_bar(core.Entity):
                         latd = None
                         lond = None
                         rawlabel += 8*' '
-                    elif 52.4796277778 < lat_ac < 52.688125 and 4.34225 < lon_ac < 4.7281416667:
-                        latd = None
-                        lond = None
-                        rawlabel += 8 * ' '
                     elif alt_ac < 500:
                         latd = None
                         lond = None
@@ -108,7 +123,14 @@ class trackmiles_bar(core.Entity):
                     else:
                         latd, lond = geo.kwikpos(51.57070200000000, 2.25580600000000, 90, dtg)
                         rawlabel += '%-8s' % acid[:8]
-                        #rawlabel += '%-3' % dtg
+                        if nodedata.acdata.trackmiles[idx] == min(nodedata.acdata.trackmiles):
+                            rawlabel += 8*' '
+                        else:
+                            intrailsep = self.get_intrailsep_from_next_in_seq(nodedata.acdata.trackmiles[idx],
+                                                                         sorted_tm)
+
+                            rawlabel += '%-8.1f' % intrailsep
+                        #rawlabel += '%-8.1f' % dtg
                     lon.append(lond)
                     lat.append(latd)
 
