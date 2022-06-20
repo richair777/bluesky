@@ -8,6 +8,7 @@ from bluesky.ui import palette
 from bluesky.ui.qtgl import glhelpers as glh
 from bluesky.ui.qtgl import console
 from bluesky.ui.qtgl.gltraffic import Traffic, leading_zeros
+from bluesky.tools.aero import nm, kts
 
 
 ### Initialization function of the plugin
@@ -62,7 +63,7 @@ class trackmiles_bar(core.Entity):
             self.trackmiles_bar = Traffic()
 
             # Initialize plugin t-bar aircraft and label
-            self.trackmiles_bar.plugin_rangebar(blocksize=(8, 2), position=(1.2, 3))
+            self.trackmiles_bar.plugin_rangebar(blocksize=(8, 3), position=(1.2, 3))
 
             # Update label with current data
             rawlabel = ''
@@ -108,6 +109,7 @@ class trackmiles_bar(core.Entity):
 
                 for idx in range(len(nodedata.acdata.id)):
                     acid = nodedata.acdata.id[idx]
+                    gs = nodedata.acdata.gs[idx]
                     dtg = nodedata.acdata.trackmiles[idx]
                     lat_ac = nodedata.acdata.lat[idx]
                     lon_ac = nodedata.acdata.lon[idx]
@@ -130,7 +132,9 @@ class trackmiles_bar(core.Entity):
                                                                          sorted_tm)
 
                             rawlabel += '%-8.1f' % intrailsep
-                        #rawlabel += '%-8.1f' % dtg
+                        gs_kts = gs/kts
+                        rawlabel += '%-8.0f' % gs_kts
+
                     lon.append(lond)
                     lat.append(latd)
 

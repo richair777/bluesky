@@ -3,7 +3,7 @@ from random import randint
 import numpy as np
 import bluesky as bs
 # Import the global bluesky objects. Uncomment the ones you need
-from bluesky import core, stack, traf  #, settings, navdb, sim, scr, tools
+from bluesky import core, stack, traf, sim  #, settings, navdb, sim, scr, tools
 from bluesky.tools import geo
 from bluesky.ui.qtgl.gltraffic import Traffic, leading_zeros
 
@@ -41,7 +41,7 @@ class Trackmiles(core.Entity):
         self.trackmileslbl = None
         self.bla = 987
         self.distance_to_go = []
-        print ("traf: ", traf)
+        print("traf: ", traf)
 
         # Set update function
         bs.net.actnodedata_changed.connect(self.update_trackmiles)
@@ -131,7 +131,7 @@ class Trackmiles(core.Entity):
             self.trackmileslbl = Traffic()
 
             # Initialize plugin label
-            self.trackmileslbl.plugin_init(blocksize=(3, 1), position=(1, 7))
+            self.trackmileslbl.plugin_init(blocksize=(4, 1), position=(1, 7))
 
             # Update label with current data
             rawlabel = ''
@@ -156,13 +156,21 @@ class Trackmiles(core.Entity):
                 for idx in range(len(nodedata.acdata.id)):
                     acid = nodedata.acdata.id[idx]
                     dtg = nodedata.acdata.trackmiles[idx]
+                    track = nodedata.acdata.trk[idx]
 
+                    #heading = nodedata.acdata.hdg[idx]
+
+                    #route = traf.ap.route
+                    #next_wpt = nodedata.acdata.actwpt[idx]
+
+                    #print(next_wpt,track)
 
                     tracklbl = nodedata.acdata.tracklbl[idx]
 
                     #if tracklbl and dtg != 0. and acid == console.Console._instance.id_select:
                     if tracklbl and dtg != 0.:
-                        rawlabel += '%-3s' % leading_zeros(dtg)[:3]
+                        #rawlabel += '%-3s' % leading_zeros(dtg)[:3]
+                        rawlabel += '%-4.1f' % dtg
                     else:
                         rawlabel += 3*' '
                 self.trackmileslbl.pluginlbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
@@ -171,4 +179,5 @@ class Trackmiles(core.Entity):
     def nextw(self, acid: 'acid'):
         bla = traf
         bli = self.distance_to_go
+        #turnrad = self.
         return True, f'The result for {traf.id[acid]} is set to {bli} NM.'

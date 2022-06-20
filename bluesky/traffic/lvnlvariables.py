@@ -13,6 +13,7 @@ import bluesky as bs
 from bluesky.core import Entity, timed_function
 from bluesky.tools import misc, geo
 from bluesky import stack
+from bluesky.traffic import trackmiles_calc
 
 
 """
@@ -83,29 +84,50 @@ class LVNLVariables(Entity):
         self.tracklbl[-n:]  = True
         self.mlbl[-n:]      = False
 
-    def get_stuff(self, idx):
+    def get_trackmiles(self, idx):
         own_lat = bs.traf.lat
         own_lon = bs.traf.lon
         wpt_lat = bs.traf.actwp.lat
         wpt_lon = bs.traf.actwp.lon
         route = bs.traf.ap.route
-        print("lenght: ",len(route[idx].wpname))
+        turn_dist = bs.traf.actwp.turndist
+        dist_next = geo.kwikdist(own_lat, own_lon, wpt_lat, wpt_lon)
+        next_wpt = 123 #route[0].wpname[route[0].iactwp]
+        #print(route[0].iactwp)
+        #print(route[idx].wpname)
+        print(turn_dist, dist_next, next_wpt, bs.traf.actwp.curlegdir, bs.traf.actwp.curleglen)
+
+
 
         tm_total = 0.0
-        print("gezeik: ", route[idx].wpname, route[idx].wpname[route[idx].iactwp])
         if len(route[idx].wpname) > 1:
             for i in range(0, len(route[idx].wpname) - 1):
+                #print(idx,i)
+                #print(route[idx].wpname[i],route[idx].wpname[route[idx].iactwp])
 
                 if route[idx].wpname[i] == route[idx].wpname[route[idx].iactwp]:
                     j = i
 
-            for i in range(j, len(route[idx].wpname) - 1):
-                section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
-                                                route[idx].wplon[i + 1])
-                tm_total = tm_total + section_distance
+                    section_dir2 = []
+                    for i in range(j, len(route[idx].wpname) - 1):
+                        #section distances point to point
+                        section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1])
+                        section_dir = geo.kwikqdrdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1])
+                        section_dir2.append(section_dir[0])
 
-        distance_to_go = tm_total + geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])
-        #print ("DTg: ", distance_to_go)
+                        #add all sections for the totals
+                        tm_total = tm_total + section_distance
+
+                        #print(route[idx].wpname[i], route[idx].wpalt[i], route[idx].wpspd[i])
+
+                    # get the heading changes
+                    print(trackmiles_calc.get_hdg_changes(section_dir2))
+
+        distance_to_go = tm_total + \
+                         geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) - \
+                         (turn_dist[idx]/1852)
 
         return distance_to_go
 
@@ -208,7 +230,7 @@ class LVNLVariables(Entity):
         self.trackmiles = np.ones(len(self.arr))
         bla = bs.traf.ap.route
         for i in range(0, len(self.trackmiles)):
-            self.trackmiles[i] = self.get_stuff(i)
+           self.trackmiles[i] = self.get_trackmiles(i)
         #print ("bla: ", bla[1].wpname)
 
         return
