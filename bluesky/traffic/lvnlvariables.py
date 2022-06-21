@@ -13,8 +13,7 @@ import bluesky as bs
 from bluesky.core import Entity, timed_function
 from bluesky.tools import misc, geo
 from bluesky import stack
-from bluesky.traffic import trackmiles_calc
-
+from bluesky.traffic import trackmiles_calc, activewpdata
 
 """
 Classes
@@ -97,7 +96,9 @@ class LVNLVariables(Entity):
         #print(route[idx].wpname)
         print(turn_dist, dist_next, next_wpt, bs.traf.actwp.curlegdir, bs.traf.actwp.curleglen)
 
-
+        #turn_rad = bs.traf.actwp.calcturn(128.6,0.436,1.937,0.419,-999.)
+        turn_rad = bs.traf.actwp.calcturn(128.611, 0.436, 25.3, 90., -999.)
+        print ('turn_rad:', turn_rad[0]) #XXX
 
         tm_total = 0.0
         if len(route[idx].wpname) > 1:
@@ -108,26 +109,50 @@ class LVNLVariables(Entity):
                 if route[idx].wpname[i] == route[idx].wpname[route[idx].iactwp]:
                     j = i
 
+                    section_dist = []
                     section_dir2 = []
                     for i in range(j, len(route[idx].wpname) - 1):
-                        #section distances point to point
+                        #Pure section distances point to point
                         section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
                                                         route[idx].wplon[i + 1])
+                        section_dist.append(geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1]))
                         section_dir = geo.kwikqdrdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
-                                                        route[idx].wplon[i + 1])
-                        section_dir2.append(section_dir[0])
+                                                        route[idx].wplon[i + 1])[0]
+                        section_dir2.append(section_dir)
 
                         #add all sections for the totals
                         tm_total = tm_total + section_distance
 
-                        #print(route[idx].wpname[i], route[idx].wpalt[i], route[idx].wpspd[i])
+                        print("route alt/spd: ", route[idx].wpname[i], route[idx].wpalt[i], route[idx].wpspd[i])
+
+                    turnrad = []
+                    turndist = []
+                    hdgchange = trackmiles_calc.get_hdg_changes(section_dir2)
+                    for wpt in range(0, len(section_dir2) - 1):
+                        turndist.append(bs.traf.actwp.calcturn(route[idx].wpspd[wpt], 0.436, section_dir2[wpt], section_dir2[wpt+1], -999.)[0])
+                        turnrad.append(bs.traf.actwp.calcturn(route[idx].wpspd[wpt], 0.436, section_dir2[wpt], section_dir2[wpt+1], -999.)[1])
+
+                        tm_total = tm_total - 2 * (turndist[wpt]/1852) + (turnrad[wpt] * hdgchange[wpt]*(3.14/180))/1852
 
                     # get the heading changes
-                    print(trackmiles_calc.get_hdg_changes(section_dir2))
+                    print("turn dists:", turndist)
+                    print("turn rads:", turnrad)
+                    print("headings: ", section_dir2)
+                    print("hdg changes: ", hdgchange)
+                    print("section distances: ", section_dist)
+
+            #Lego it all together
+            tm_total2 = 0.0
+            #for k in range(0, len(section_dist)):
+            #    tm_total2 = tm_total2 + section_dist[k]
+
+            print("tm_total2: ", tm_total2, tm_total)
+
 
         distance_to_go = tm_total + \
-                         geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) - \
-                         (turn_dist[idx]/1852)
+                         geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])# - \
+                       #  (turn_dist[idx]/1852)
 
         return distance_to_go
 
