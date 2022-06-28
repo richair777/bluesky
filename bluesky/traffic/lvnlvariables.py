@@ -86,21 +86,29 @@ class LVNLVariables(Entity):
     def get_trackmiles(self, idx):
         own_lat = bs.traf.lat
         own_lon = bs.traf.lon
+        own_tas = bs.traf.tas
+        own_hdg = bs.traf.hdg
         wpt_lat = bs.traf.actwp.lat
         wpt_lon = bs.traf.actwp.lon
         route = bs.traf.ap.route
         turn_dist = bs.traf.actwp.turndist
+        curlegdir = bs.traf.actwp.curlegdir
         dist_next = geo.kwikdist(own_lat, own_lon, wpt_lat, wpt_lon)
         next_wpt = 123 #route[0].wpname[route[0].iactwp]
         #print(route[0].iactwp)
         #print(route[idx].wpname)
-        print(turn_dist, dist_next, next_wpt, bs.traf.actwp.curlegdir, bs.traf.actwp.curleglen)
 
         #turn_rad = bs.traf.actwp.calcturn(128.6,0.436,1.937,0.419,-999.)
         turn_rad = bs.traf.actwp.calcturn(128.611, 0.436, 25.3, 90., -999.)
-        print ('turn_rad:', turn_rad[0]) #XXX
+        #print ('turn_rad:', turn_rad[0]) #XXX
 
         tm_total = 0.0
+        act_hdg_change = 0.0
+        turnrad = 0.0
+        section_dist = []
+        section_dir2 = []
+        curr_section_dir = 0.0
+        curr_section_dist = 0.0
         if len(route[idx].wpname) > 1:
             for i in range(0, len(route[idx].wpname) - 1):
                 #print(idx,i)
@@ -109,8 +117,6 @@ class LVNLVariables(Entity):
                 if route[idx].wpname[i] == route[idx].wpname[route[idx].iactwp]:
                     j = i
 
-                    section_dist = []
-                    section_dir2 = []
                     for i in range(j, len(route[idx].wpname) - 1):
                         #Pure section distances point to point
                         section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
@@ -120,11 +126,16 @@ class LVNLVariables(Entity):
                         section_dir = geo.kwikqdrdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
                                                         route[idx].wplon[i + 1])[0]
                         section_dir2.append(section_dir)
+                        #current section direction
+                        curr_section_dir = geo.kwikqdrdist(route[idx].wplat[j-1], route[idx].wplon[j-1], route[idx].wplat[j],
+                                                        route[idx].wplon[j])[0]
+                        curr_section_dist = geo.kwikqdrdist(route[idx].wplat[j-1], route[idx].wplon[j-1], route[idx].wplat[j],
+                                                        route[idx].wplon[j])[1]
 
                         #add all sections for the totals
                         tm_total = tm_total + section_distance
 
-                        print("route alt/spd: ", route[idx].wpname[i], route[idx].wpalt[i], route[idx].wpspd[i])
+                        #print("route alt/spd: ", route[idx].wpname[i], route[idx].wpalt[i], route[idx].wpspd[i])
 
                     turnrad = []
                     turndist = []
@@ -135,24 +146,41 @@ class LVNLVariables(Entity):
 
                         tm_total = tm_total - 2 * (turndist[wpt]/1852) + (turnrad[wpt] * hdgchange[wpt]*(3.14/180))/1852
 
+                    act_hdg_change = bs.traf.actwp.next_qdr - own_hdg
                     # get the heading changes
-                    print("turn dists:", turndist)
-                    print("turn rads:", turnrad)
-                    print("headings: ", section_dir2)
-                    print("hdg changes: ", hdgchange)
-                    print("section distances: ", section_dist)
-
-            #Lego it all together
-            tm_total2 = 0.0
-            #for k in range(0, len(section_dist)):
-            #    tm_total2 = tm_total2 + section_dist[k]
-
-            print("tm_total2: ", tm_total2, tm_total)
-
+                    #print("turn dists:", turndist)
+                    #print("turn rads:", turnrad)
+                    #print("headings: ", section_dir2)
+                    #print("hdg changes: ", hdgchange)
+                    #print("next hdg chg: ", act_hdg_change)
+                    #print("section distances: ", section_dist)
 
         distance_to_go = tm_total + \
-                         geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])# - \
-                       #  (turn_dist[idx]/1852)
+                         geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) #- \
+                         #(2*turn_dist[idx]/1852)
+
+        #arc_dist = np.abs(act_hdg_change*3.14/180) * bs.traf.actwp.turndist/np.tan(np.abs(act_hdg_change*3.14/(2*180))) / 1852
+
+        hdg = np.radians(own_hdg)
+        brg = np.radians(geo.kwikqdrdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])[0])
+        r = bs.traf.actwp.calcturn(own_tas, 0.436, np.degrees(hdg), np.degrees(brg), -999.)[1]/1852
+        dtg = geo.kwikqdrdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])[1]
+        delta_hdg = hdg - brg
+        D_accent = np.sqrt(r*r)
+        dist_straight = np.sqrt((np.square(dtg)) - 2.*r*dtg*np.cos(1.57-delta_hdg)) #D dubbel accent
+        gamma_acc = np.arctan(r/dist_straight)
+
+        arc_dist = np.abs(hdg - np.radians(curr_section_dir)) * r
+        bla = route[0].getnextqdr()
+        if section_dist:
+            print(np.degrees(brg), np.degrees(hdg), r, turn_dist/1852, curr_section_dir, curr_section_dist)
+
+        if np.abs(np.degrees(hdg) - curr_section_dir) > 5.0:
+            dtg_to_next = arc_dist + curr_section_dist - turn_dist/1852 -2.45
+        else:
+            dtg_to_next = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) - turn_dist[idx] / 1852
+
+        distance_to_go = dtg_to_next
 
         return distance_to_go
 
