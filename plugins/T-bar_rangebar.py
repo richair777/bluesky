@@ -121,6 +121,7 @@ class tbar_ac(core.Entity):
                     else:
                         latd, lond = geo.kwikpos(51.57070200000000, 2.25580600000000, 90, dtg)
                         rawlabel += '%-8s' % acid[:8]
+                        #rawlabel += '%-3' % dtg
                     lon.append(lond)
                     lat.append(latd)
 

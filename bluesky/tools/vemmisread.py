@@ -14,7 +14,6 @@ from bluesky.tools import aero
 from bluesky.tools.geo import qdrpos
 from bluesky.tools.aero import kts, ft
 
-
 """
 Classes
 """
@@ -570,13 +569,28 @@ class VEMMISRead:
         # Split into entry sectors
         # Sector 1
         sector1 = inbound.loc[inbound['LATITUDE'] >= 52.51121388888889]
+        #print(sector1)
         sector1 = sector1.loc[sector1['LONGITUDE'] >= 4.764166666666667]
+        #print(sector1)
         # Sector 2
         sector2 = inbound.loc[inbound['LATITUDE'] < 52.51121388888889]
+        #print(sector2)
         sector2 = sector2.loc[sector2['LONGITUDE'] >= 4.764166666666667]
+        #print(sector2)
         # Sector 3/4
         sector34 = inbound.loc[inbound['LATITUDE'] <= 52.447925]
+        print(sector34)
         sector34 = sector34.loc[sector34['LONGITUDE'] < 4.764166666666667]
+        #bla = sector34.loc[]
+        print(sector34)
+        # Sector 3
+        sector3 = inbound.loc[inbound['LATITUDE'] <= 51.746687]
+        sector3 = sector3.loc[sector3['LONGITUDE'] < 4.764166666666667]
+        sector3 = sector3.loc[sector3['LONGITUDE'] > 2.727561]
+        # Sector 4
+        sector4 = inbound.loc[inbound['LATITUDE'] <= 52.447925]
+        sector4 = sector4.loc[sector4['LATITUDE'] > 51.746687]
+        sector4 = sector4.loc[sector4['LONGITUDE'] < 4.764166666666667]
         # Sector 5
         sector5 = inbound.loc[inbound['LATITUDE'] > 52.447925]
         sector5 = sector5.loc[sector5['LONGITUDE'] < 4.764166666666667]
@@ -585,13 +599,19 @@ class VEMMISRead:
         cmds  += list("ARR "+sector1['CALLSIGN']+", NIRSI_AM603")
         cmdst += list(sector1['SIM_START'] + 0.01)
 
-        cmds  += list("ARR "+sector2['CALLSIGN']+", NIRSI_GAL01")
+        cmds  += list("ARR "+sector2['CALLSIGN']+", NIRSI_AM603")
         cmdst += list(sector2['SIM_START'] + 0.01)
 
-        cmds  += list("ARR "+sector34['CALLSIGN']+", NIRSI_GAL01")
-        cmdst += list(sector34['SIM_START'] + 0.01)
+        #cmds  += list("ARR "+sector34['CALLSIGN']+", NIRSI_RIVER")
+        #cmdst += list(sector34['SIM_START'] + 0.01)
 
-        cmds  += list("ARR "+sector5['CALLSIGN']+", NIRSI_GAL02")
+        cmds += list("ARR " + sector3['CALLSIGN'] + ", NIRSI_AM603")
+        cmdst += list(sector3['SIM_START'] + 0.01)
+
+        cmds += list("ARR " + sector4['CALLSIGN'] + ", NIRSI_AM603")
+        cmdst += list(sector4['SIM_START'] + 0.01)
+
+        cmds  += list("ARR "+sector5['CALLSIGN']+", NIRSI_AM603")
         cmdst += list(sector5['SIM_START'] + 0.01)
 
         inother = other.dropna(subset=['STACK'])
@@ -734,8 +754,8 @@ class VEMMISSource:
         bs.scr.echo('Loading flight data ...')
 
         # initialize t-bar by uncommenting the second line below
-        commands, commandstime = vemmisdata.get_initial(swdatafeed=True)
-        # commands, commandstime = vemmisdata.get_initial_tbar()
+        #commands, commandstime = vemmisdata.get_initial(swdatafeed=True)
+        commands, commandstime = vemmisdata.get_initial_tbar()
 
         # Load track data
         bs.scr.echo('Loading track data ...')

@@ -660,7 +660,6 @@ class Traffic(glh.RenderObject, layer=100):
         """
         self.glsurface.makeCurrent()
         actdata = bs.net.get_nodedata()
-        print("nodedata: ", actdata.acdata.id)
         naircraft = len(actdata.acdata.id)
         tbar_labelpos = np.empty((min(naircraft, MAX_NAIRCRAFT), 2), dtype=np.float32)
 
@@ -705,7 +704,7 @@ class Traffic(glh.RenderObject, layer=100):
 
         # Update
         for i in range(len(actdata.acdata.id)):
-            tbar_labelpos[i] = [-position[1]*text_width, 1.5*position[0]*text_height]
+            tbar_labelpos[i] = [-position[1]*text_width, 3*position[0]*text_height]
         self.tbar_labelpos = tbar_labelpos
         self.tbar_lbloffset.update(np.array(self.tbar_labelpos, dtype=np.float32))
 

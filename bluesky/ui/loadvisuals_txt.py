@@ -96,7 +96,7 @@ def load_mapsline_txt(args):
     shapes = []
     coords = []
     colors = []
-    tbar_maps = ['NIRSI', 'GALIS', 'RANGEBAR', 'SOKS2']
+    tbar_maps = ['NIRSI', 'GALIS', 'RANGEBAR', 'SOKS2', 'TRACKMILESBAR']
     if args in tbar_maps:
         path = 'T-bar'
     else:

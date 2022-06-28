@@ -1,4 +1,4 @@
-""" Add the DTG to the label for the T-Bar concept """
+""" Add the track miles to the label"""
 
 import numpy as np
 import bluesky as bs
@@ -14,12 +14,12 @@ from bluesky.traffic.lvnlvariables import LVNLVariables
 def init_plugin():
     ''' Plugin initialisation function. '''
 
-    dtg = TBar()
+    tm = TmLabel()
 
     # Configuration parameters
     config = {
         # The name of your plugin
-        'plugin_name':     'TBAR',
+        'plugin_name':     'TMLABEL',
 
         # The type of this plugin. For now, only simulation plugins are possible.
         'plugin_type':     'gui',
@@ -34,7 +34,7 @@ Classes
 '''
 
 
-class TBar(core.Entity):
+class TmLabel(core.Entity):
     """
     Definition: Class used to initialize and update DTG to T-Bar points
     Methods:
@@ -45,46 +45,37 @@ class TBar(core.Entity):
     def __init__(self):
         super().__init__()
         self.initialized = False
-        self.tbarlbl = None
+        self.trackmileslbl = None
 
         # Set update function
-        bs.net.actnodedata_changed.connect(self.update_tbar)
+        bs.net.actnodedata_changed.connect(self.update_trackmiless)
 
-    @stack.command(name='SHOWDTG',)
-    def showdtg(self):
-        """
-        Function: Initialize the DTG label
-        Args: -
-        Returns: -
-
-        Created by: Bob van Dillen
-        Date: 25-2-2022
-        """
-
+    @stack.command(name='SHOWTRACKMILESS',)
+    def showtrackmiless(self):
         # Check if we need to initialize
         if not self.initialized:
             # Get current node data
             actdata = bs.net.get_nodedata()
 
             # Class to access Traffic graphics
-            self.tbarlbl = Traffic()
+            self.trackmileslbl = Traffic()
 
             # Initialize plugin label
-            self.tbarlbl.plugin_init(blocksize=(3, 1), position=(2, 7))
+            self.trackmileslbl.plugin_init(blocksize=(3, 1), position=(1, 7))
 
             # Update label with current data
             rawlabel = ''
             for idx in range(len(actdata.acdata.id)):
                 rawlabel += 3*' '
 
-            self.tbarlbl.pluginlbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
+            self.trackmileslbl.pluginlbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
 
             # Initialization completed
             self.initialized = True
         else:
-            self.tbarlbl.show_pluginlabel = not self.tbarlbl.show_pluginlabel
+            self.trackmileslbl.show_pluginlabel = not self.trackmileslbl.show_pluginlabel
 
-    def update_tbar(self, nodeid, nodedata, changed_elems):
+    def update_trackmiless(self, nodeid, nodedata, changed_elems):
         """
         Function: Update T-Bar graphics
         Args:
@@ -99,12 +90,11 @@ class TBar(core.Entity):
 
         if self.initialized:
             if 'ACDATA' in changed_elems:
-                # Update DTG label
+                # Update TM label
                 rawlabel = ''
                 for idx in range(len(nodedata.acdata.id)):
                     acid = nodedata.acdata.id[idx]
-                    dtg = nodedata.acdata.dtg[idx]
-                    bla = nodedata.acdata.trackmiles[idx]
+                    dtg = 456
 
                     tracklbl = nodedata.acdata.tracklbl[idx]
 
@@ -115,8 +105,8 @@ class TBar(core.Entity):
                         rawlabel += '%-3s' % leading_zeros(dtg)[:3]
                     else:
                         rawlabel += 3*' '
-                self.tbarlbl.pluginlbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
+                self.trackmileslbl.pluginlbl.update(np.array(rawlabel.encode('utf8'), dtype=np.string_))
 
-
+#    def update_track_miles(self):
 
 
