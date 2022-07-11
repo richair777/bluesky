@@ -107,6 +107,9 @@ class LVNLVariables(Entity):
         wpt_tas = []
         curr_section_dir = 0.0
         curr_section_dist = 0.0
+
+        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf)
+        print ("dist next: ", dist_to_next_curve)
         if len(route[idx].wpname) > 1:
             for i in range(0, len(route[idx].wpname) - 1):
 
@@ -115,6 +118,8 @@ class LVNLVariables(Entity):
                     j = i
                     tm_remaining_straight = trackmiles_calc.get_remaining_route_dist_straight(route[idx], j)
                     tm_remaining_curve = trackmiles_calc.get_remaining_route_dist_curve(route[idx], j)
+                    print("tm rem straight and curved: ", tm_remaining_straight, tm_remaining_curve)
+
                     # Start looping from j (next waypoint)
                     for i in range(j, len(route[idx].wpname) - 1):
                         #Pure section distances point to point
@@ -169,6 +174,7 @@ class LVNLVariables(Entity):
                     #print("section distances: ", section_dist)
 
 
+        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf)
 
         #arc_dist = np.abs(act_hdg_change*3.14/180) * bs.traf.actwp.turndist/np.tan(np.abs(act_hdg_change*3.14/(2*180))) / 1852
 
@@ -193,6 +199,7 @@ class LVNLVariables(Entity):
         # if section_dist:
         #     print(np.degrees(brg), np.degrees(hdg), r, turn_dist/1852, curr_section_dir, curr_section_dist)
 
+        #trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf, bs.traf.actwp)
         #tmc = trackmiles_calc.TrackmilesCalculation()
         if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
             dtg_to_next = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) \
@@ -210,8 +217,7 @@ class LVNLVariables(Entity):
                           - 2*turn_dist[idx] / 1852 + turn_rad_next/1852 + tm_total
             dtg_alternative = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) \
                           - 2*turn_dist[idx] / 1852 + turn_rad_next/1852 + tm_total
-            print("check ", prev_turn_rad, turn_rad_next/1852)
-            print("dtgs ", dtg_to_next, dtg_alternative)
+            #print("dtgs ", dtg_to_next, dtg_alternative)
             self.tmc2.update()
 
         distance_to_go = dtg_to_next

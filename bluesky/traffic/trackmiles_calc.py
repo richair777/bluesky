@@ -52,7 +52,7 @@ def get_remaining_route_dist_straight(route, j):
 
         tm_remaining += section_distance
 
-    print("tm_remaining: ", tm_remaining)
+    #print("tm_remaining: ", tm_remaining)
     return tm_remaining
 
 def get_remaining_route_dist_curve(route, j):
@@ -80,8 +80,7 @@ def get_remaining_route_dist_curve(route, j):
         # we now have the ingredients to account for the flyby waypoints
         tm_remaining = tm_remaining + arc_dist - 2 * turn_dist
 
-
-    print("tm rem curve: ", tm_remaining)
+    #print("tm rem curve: ", tm_remaining)
     return tm_remaining
 
 def get_wpt_dirs_inout(route):
@@ -93,7 +92,7 @@ def get_wpt_dirs_inout(route):
         dir_out.append(geo.kwikqdrdist(route.wplat[i], route.wplon[i], route.wplat[i+1],
                                       route.wplon[i+1])[0])
 
-    #print("dirs: ", dir_in, dir_out)
+    print("dirs: ", dir_in, dir_out)
 
 # Calculate turn distance and radius (stolen from activewpdata)
 def calcturn(tas,bank,wpqdr,next_wpqdr,turnradnm=-999.):
@@ -108,6 +107,39 @@ def calcturn(tas,bank,wpqdr,next_wpqdr,turnradnm=-999.):
     turndist = np.abs(turnrad * np.tan(np.radians(0.5 * np.abs(degto180(wpqdr%360. - next_wpqdr%360.)))))
 
     return turndist,turnrad
+
+def get_dist_to_next_wpt_curve(traf):
+    #Distance to next waypoint including the arc to flyby the waypoint
+
+    #1. Get the distance from ownship to next waypoint
+    dist_to_next_wpt = geo.kwikdist(traf.lat, traf.lon, traf.actwp.lat, traf.actwp.lon)
+
+    #2. Get the arc along the waypoint and the distance before wpt when turn starts
+    dir_out = traf.actwp.next_qdr
+    brg = np.radians(geo.kwikqdrdist(traf.lat, traf.lon, traf.actwp.lat, traf.actwp.lon)[0])
+    hdg = np.radians(traf.hdg)
+    wpt_tas = traf.tas
+
+    if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
+        dir_in = np.degrees(brg)
+
+    spd_constr = traf.actwp.nextspd
+    alt_constr = traf.actwp.nextaltco
+    # If there is no speed constraint at the next waypoint, use current speed for best guess
+    if spd_constr >= 0.0:
+        wpt_tas = aero.cas2tas(spd_constr, alt_constr)
+    else:
+        wpt_tas = traf.tas
+
+    turn_dist_next, turn_rad_next = calcturn(wpt_tas, 0.436, np.degrees(brg), dir_out, -999.)
+    arc_dist_next = turn_rad_next * np.abs(np.radians(dir_out) - brg)
+
+    #3. Add together to get the required distance
+    distance_to_next_incl_arc = dist_to_next_wpt - turn_dist_next/1852 + arc_dist_next/1852
+
+    #print("dist_to_next: ", dist_to_next_wpt, turn_dist_next/1852, hdg, brg, distance_to_next_incl_arc)
+
+    return distance_to_next_incl_arc
 
 
 
