@@ -68,7 +68,7 @@ class ActiveWaypoint(Entity, replaceable=True):
         turntas = np.where(bs.traf.actwp.turnspd<0.0,bs.traf.tas,bs.traf.actwp.turnspd)
         flybyturndist,turnrad = self.calcturn(turntas,bs.traf.ap.bankdef,qdr,next_qdr,turnradnm)
 
-        # Turb dist iz ero for flyover, calculated distance for others
+        # Turn dist is zero for flyover, calculated distance for others
         self.turndist = np.logical_or(flyby,flyturn)*flybyturndist
 
         # Avoid circling by checking for flying away on almost straight legs with small turndist
