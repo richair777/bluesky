@@ -50,6 +50,7 @@ class LVNLVariables(Entity):
 
         self.swautolabel = False  # Auto label change
 
+        #for calculating trackmiles along a route
         self.tmc2 = trackmiles_calc.TrackmilesCalculation()
 
         with self.settrafarrays():
@@ -85,7 +86,7 @@ class LVNLVariables(Entity):
         self.tracklbl[-n:]  = True
         self.mlbl[-n:]      = False
 
-    def get_trackmiles(self, idx):
+    def get_trackmiles2(self, idx):
         own_lat = bs.traf.lat
         own_lon = bs.traf.lon
         own_tas = bs.traf.tas
@@ -107,9 +108,70 @@ class LVNLVariables(Entity):
         wpt_tas = []
         curr_section_dir = 0.0
         curr_section_dist = 0.0
+        tm_remaining_curve = 0.0
+        tm_remaining_straight = 0.0
 
-        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf)
-        print ("dist next: ", dist_to_next_curve)
+        if len(route[idx].wpname) > 1:
+            for i in range(0, len(route[idx].wpname) - 1):
+
+                # Determine the next waypoint so we can loop around the remaining waypoints for data
+                if route[idx].wpname[i] == route[idx].wpname[route[idx].iactwp]:
+                    j = i
+
+                    # Start looping from j (next waypoint)
+                    for i in range(j, len(route[idx].wpname) - 1):
+                        #Pure section distances point to point
+
+                        section_distance = geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1])
+                        section_dist.append(geo.kwikdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1]))
+                        # Heading from waypoint to waypoint
+                        section_dir = geo.kwikqdrdist(route[idx].wplat[i], route[idx].wplon[i], route[idx].wplat[i + 1],
+                                                        route[idx].wplon[i + 1])[0]
+                        section_dir2.append(section_dir)
+
+                        wpt_tas.append(aero.cas2tas(route[idx].wpspd[i], route[idx].wpalt[i]))
+                        #current section direction
+                        curr_section_dir = geo.kwikqdrdist(route[idx].wplat[j-1], route[idx].wplon[j-1], route[idx].wplat[j],
+                                                        route[idx].wplon[j])[0]
+                        curr_section_dist = geo.kwikqdrdist(route[idx].wplat[j-1], route[idx].wplon[j-1], route[idx].wplat[j],
+                                                        route[idx].wplon[j])[1]
+
+                        #add all sections for the totals
+                        tm_total = tm_total + section_distance
+
+        distance_to_go = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) + tm_total
+
+        return distance_to_go
+
+    def get_trackmiles(self, idx):
+        own_lat = bs.traf.lat[idx]
+        own_lon = bs.traf.lon[idx]
+        own_tas = bs.traf.tas[idx]
+        own_hdg = bs.traf.hdg[idx]
+        wpt_lat = bs.traf.actwp.lat[idx]
+        wpt_lon = bs.traf.actwp.lon[idx]
+        route = bs.traf.ap.route
+        turn_dist = bs.traf.actwp.turndist[idx]
+        curlegdir = bs.traf.actwp.curlegdir[idx]
+        dist_next = geo.kwikdist(own_lat, own_lon, wpt_lat, wpt_lon)
+        next_wpt = 123 #route[0].wpname[route[0].iactwp]
+
+        tm_total = 0.0
+        act_hdg_change = 0.0
+        turnrad = 0.0
+        section_dist = []
+        section_dir2 = []
+        section_turndist = []
+        wpt_tas = []
+        curr_section_dir = 0.0
+        curr_section_dist = 0.0
+        tm_remaining_curve = 0.0
+        tm_remaining_straight = 0.0
+
+        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf, idx)
+        dist_to_next_straight = trackmiles_calc.get_dist_to_next_wpt_straight(bs.traf, idx)
         if len(route[idx].wpname) > 1:
             for i in range(0, len(route[idx].wpname) - 1):
 
@@ -118,7 +180,7 @@ class LVNLVariables(Entity):
                     j = i
                     tm_remaining_straight = trackmiles_calc.get_remaining_route_dist_straight(route[idx], j)
                     tm_remaining_curve = trackmiles_calc.get_remaining_route_dist_curve(route[idx], j)
-                    print("tm rem straight and curved: ", tm_remaining_straight, tm_remaining_curve)
+                    #print("tm rem straight and curved: ", tm_remaining_straight, tm_remaining_curve)
 
                     # Start looping from j (next waypoint)
                     for i in range(j, len(route[idx].wpname) - 1):
@@ -174,7 +236,7 @@ class LVNLVariables(Entity):
                     #print("section distances: ", section_dist)
 
 
-        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf)
+        dist_to_next_curve = trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf, idx)
 
         #arc_dist = np.abs(act_hdg_change*3.14/180) * bs.traf.actwp.turndist/np.tan(np.abs(act_hdg_change*3.14/(2*180))) / 1852
 
@@ -183,10 +245,10 @@ class LVNLVariables(Entity):
         prev_qdr = 999.
         curr_qdr = curr_section_dir
         next_qdr = bs.traf.actwp.next_qdr
-        brg = np.radians(geo.kwikqdrdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])[0])
+        brg = np.radians(geo.kwikqdrdist(own_lat, own_lon, wpt_lat, wpt_lon)[0])
         turn_rad_next = bs.traf.actwp.calcturn(own_tas, 0.436, np.degrees(hdg), bs.traf.actwp.next_qdr, -999.)[1]
         r = bs.traf.actwp.calcturn(own_tas, 0.436, np.degrees(hdg), np.degrees(brg), -999.)[1]/1852
-        dtg_to_next = geo.kwikqdrdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])[1]
+        dtg_to_next = geo.kwikqdrdist(own_lat, own_lon, wpt_lat, wpt_lon)[1]
         arc_dist_next = np.abs(turn_rad_next/1852 * np.radians(next_qdr - curr_qdr))
 
         delta_hdg = hdg - brg
@@ -199,33 +261,40 @@ class LVNLVariables(Entity):
         # if section_dist:
         #     print(np.degrees(brg), np.degrees(hdg), r, turn_dist/1852, curr_section_dir, curr_section_dist)
 
-        #trackmiles_calc.get_dist_to_next_wpt_curve(bs.traf, bs.traf.actwp)
+
         #tmc = trackmiles_calc.TrackmilesCalculation()
         if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
-            dtg_to_next = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) \
-                          - 2*turn_dist[idx] / 1852 + arc_dist_next + tm_total
+            # dtg_to_next = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) \
+            #               - 2*turn_dist[idx] / 1852 + arc_dist_next + tm_total
 
-            self.tmc2.set_new_distflown_ref(bs.traf.distflown, turn_dist[idx], turn_rad_next)
+            distance_to_go = dist_to_next_curve + tm_remaining_curve
+            #distance_to_go = dist_to_next_straight + tm_remaining_straight
+
+            self.tmc2.set_new_distflown_ref(bs.traf.distflown, turn_dist, distance_to_go)
+            bs.traf.dist_ref[idx] = bs.traf.distflown[idx] / 1852
+            #print("dtg", dist_to_next_curve, tm_remaining_curve)
+            bs.traf.dtg_ref[idx] = distance_to_go
             self.tmc2.update()
-            #print("on track: ", turn_dist[idx] / 1852, arc_dist_next, tm_total, next_qdr, curr_qdr)
+
         else:
             dist_flown_ref = self.tmc2.get_distflown_ref()
             prev_turn_dist = self.tmc2.get_prev_turn_dist()
-            prev_turn_rad = self.tmc2.get_prev_turn_rad()
-            dtg_to_next = dist_flown_ref - bs.traf.distflown/1852 + prev_turn_rad \
+            curr_dtg_ref = self.tmc2.get_curr_dtg_ref()
+            distance_to_go = dist_flown_ref - bs.traf.distflown/1852 + curr_dtg_ref \
                           + curr_section_dist - prev_turn_dist \
-                          - 2*turn_dist[idx] / 1852 + turn_rad_next/1852 + tm_total
-            dtg_alternative = geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx]) \
-                          - 2*turn_dist[idx] / 1852 + turn_rad_next/1852 + tm_total
-            #print("dtgs ", dtg_to_next, dtg_alternative)
+                          - 2*turn_dist / 1852 + turn_rad_next/1852 + tm_total
+            distance_to_go = bs.traf.dtg_ref[idx] + bs.traf.dist_ref[idx] - bs.traf.distflown[idx]/1852
+
+            dtg_alternative = geo.kwikdist(own_lat, own_lon, wpt_lat, wpt_lon) \
+                          - 2*turn_dist / 1852 + turn_rad_next/1852 + tm_total
+            #print("in transition: ", dist_to_next_curve, dist_flown_ref, curr_dtg_ref, curr_section_dist, prev_turn_dist)
             self.tmc2.update()
 
-        distance_to_go = dtg_to_next
+        #distance_to_go = dtg_to_next
 
         # distance_to_go = tm_total + \
         #                  geo.kwikdist(own_lat[idx], own_lon[idx], wpt_lat[idx], wpt_lon[idx])  # - \
         # # (2*turn_dist[idx]/1852)
-
         return distance_to_go
 
     @timed_function(name='lvnlvars', dt=0.1)
