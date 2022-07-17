@@ -184,6 +184,10 @@ class Traffic(Entity):
             # LVNL Variables
             self.lvnlvars = LVNLVariables()  # Variables used by LVNL
 
+            # Temp vars for trackmiles
+            self.dtg_ref = np.array([])
+            self.dist_ref = np.array([])
+
         # Default bank angles per flight phase
         self.bphase = np.deg2rad(np.array([15, 35, 35, 35, 15, 45]))
 
