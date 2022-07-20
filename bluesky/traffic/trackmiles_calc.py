@@ -120,7 +120,7 @@ def get_dist_to_next_wpt_curve(traf, idx):
 
     #1. Get the distance from ownship to next waypoint
     dist_to_next_wpt = geo.kwikdist(traf.lat[idx], traf.lon[idx], traf.actwp.lat[idx], traf.actwp.lon[idx])
-    print("dtg straight to next: ", dist_to_next_wpt)
+
     #2. Get the arc along the waypoint and the distance before wpt when turn starts
     dir_out = np.where(traf.actwp.next_qdr[idx] < -900., traf.actwp.next_qdr[idx], traf.actwp.next_qdr[idx] % 360)
     brg = np.radians(geo.kwikqdrdist(traf.lat[idx], traf.lon[idx], traf.actwp.lat[idx], traf.actwp.lon[idx])[0])
@@ -129,7 +129,6 @@ def get_dist_to_next_wpt_curve(traf, idx):
 
     if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
         dir_in = np.degrees(brg)
-        print ("dir_in: ", dir_in)
 
     spd_constr = traf.actwp.nextspd[idx]
     alt_constr = traf.actwp.nextaltco[idx]
@@ -141,7 +140,6 @@ def get_dist_to_next_wpt_curve(traf, idx):
 
     turn_dist_next, turn_rad_next = calcturn(wpt_tas, 0.436, np.degrees(brg), dir_out, -999.)
     arc_dist_next = turn_rad_next * np.abs(np.radians(dir_out) - brg)
-    print("dir_out, brg, trad: ", dir_out, np.degrees(brg), np.degrees(hdg))
 
     #3. Add together to get the required distance
 
@@ -151,7 +149,10 @@ def get_dist_to_next_wpt_curve(traf, idx):
         distance_to_next_incl_arc = dist_to_next_wpt - 2*(turn_dist_next / 1852) + arc_dist_next / 1852
     else:
         distance_to_next_incl_arc = dist_to_next_wpt
-        print("dir_out is wappie!")
+
+    reached = traf.actwp.Reached(brg, dist_to_next_wpt, True, False, -999., False)
+
+    #self, qdr, dist, flyby, flyturn, turnradnm,swlastwp):
 
     return distance_to_next_incl_arc
 
