@@ -90,6 +90,7 @@ def get_remaining_route_dist_curve(route, j):
     #print("tm rem curve: ", tm_remaining)
     return tm_remaining
 
+# obsolete XXX
 def get_wpt_dirs_inout(route):
     dir_in = []
     dir_out = []
@@ -164,7 +165,8 @@ def get_dist_to_next_wpt_straight(traf, idx):
 
     return dist_to_next_wpt
 
-def estimate_tm_during_turn(traf):
+# TO DO
+def calc_compression():
     bla = 9
 
 

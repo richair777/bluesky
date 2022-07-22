@@ -118,7 +118,7 @@ class trackmiles_bar(core.Entity):
                         latd = None
                         lond = None
                         rawlabel += 8*' '
-                    elif alt_ac < 500:
+                    elif alt_ac < 50:
                         latd = None
                         lond = None
                         rawlabel += 8 * ' '

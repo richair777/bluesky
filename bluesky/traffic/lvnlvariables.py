@@ -68,6 +68,7 @@ class LVNLVariables(Entity):
             self.uco        = np.array([], dtype=np.bool)  # Under Control
             self.wtc        = []                           # Wake Turbulence Category
             self.trackmiles = np.array([])                 # Distance to go along route
+            self.man_intervention = np.array([], dtype=np.bool) # Manual intervention for VNR
 
     def create(self, n=1):
         """
@@ -117,13 +118,22 @@ class LVNLVariables(Entity):
         #dist_straight = np.sqrt((np.square(dtg)) - 2.*r*dtg*np.cos(1.57-delta_hdg)) #D dubbel accent
         #gamma_acc = np.arctan(r/dist_straight)
 
-        if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0 or not lnav:
+        # When on the route between wpts, calculate trackmiles the classic way
+
+        if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0 or not lnav or self.man_intervention[idx]:
             distance_to_go = dist_to_next_curve + tm_remaining_curve
-            #distance_to_go = dist_to_next_straight + tm_remaining_straight
 
             bs.traf.dist_ref[idx] = bs.traf.distflown[idx] / 1852
             bs.traf.dtg_ref[idx] = distance_to_go
 
+            if not lnav:
+                self.man_intervention[idx] = True
+
+            if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
+                self.man_intervention[idx] = False
+
+        # When in a flyby turn, estimate dtg by using the subtracting the flown distance from
+        # a reference dtg, until the a/c is on the straight line to the new wpt
         else:
             distance_to_go = bs.traf.dtg_ref[idx] + bs.traf.dist_ref[idx] - bs.traf.distflown[idx]/1852
 #            self.tmc2.update()
