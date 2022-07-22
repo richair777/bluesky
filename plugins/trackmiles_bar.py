@@ -113,12 +113,12 @@ class trackmiles_bar(core.Entity):
                     dtg = nodedata.acdata.trackmiles[idx]
                     lat_ac = nodedata.acdata.lat[idx]
                     lon_ac = nodedata.acdata.lon[idx]
-                    alt_ac = nodedata.acdata.selalt[idx]
+                    alt_ac = nodedata.acdata.alt[idx]
                     if dtg > 100:
                         latd = None
                         lond = None
                         rawlabel += 8*' '
-                    elif alt_ac < 50:
+                    elif alt_ac < 100:
                         latd = None
                         lond = None
                         rawlabel += 8 * ' '
