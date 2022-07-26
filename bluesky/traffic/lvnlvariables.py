@@ -14,6 +14,7 @@ from bluesky.core import Entity, timed_function
 from bluesky.tools import misc, geo, aero
 from bluesky import stack
 from bluesky.traffic import trackmiles_calc, activewpdata
+from bluesky.tools.misc import degto180
 
 """
 Classes
@@ -120,8 +121,9 @@ class LVNLVariables(Entity):
 
         # When on the route between wpts, calculate trackmiles the classic way
 
-        if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0 or not lnav or self.man_intervention[idx]:
+        if np.abs(degto180(np.degrees(hdg)%360. - np.degrees(brg)%360.)) < 1.0 or not lnav or self.man_intervention[idx]:
             distance_to_go = dist_to_next_curve + tm_remaining_curve
+            #distance_to_go = dist_to_next_straight + tm_remaining_straight
 
             bs.traf.dist_ref[idx] = bs.traf.distflown[idx] / 1852
             bs.traf.dtg_ref[idx] = distance_to_go
@@ -129,16 +131,13 @@ class LVNLVariables(Entity):
             if not lnav:
                 self.man_intervention[idx] = True
 
-            if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
+            if np.abs(degto180(np.degrees(hdg)%360. - np.degrees(brg)%360.)) < 1.0:
                 self.man_intervention[idx] = False
 
         # When in a flyby turn, estimate dtg by using the subtracting the flown distance from
         # a reference dtg, until the a/c is on the straight line to the new wpt
         else:
             distance_to_go = bs.traf.dtg_ref[idx] + bs.traf.dist_ref[idx] - bs.traf.distflown[idx]/1852
-#            self.tmc2.update()
-
-        print("LNAV: ", bs.traf.swlnav)
 
         return distance_to_go
 

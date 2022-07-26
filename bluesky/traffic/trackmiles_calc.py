@@ -81,13 +81,10 @@ def get_remaining_route_dist_curve(route, j):
         turn_dist = calcturn(wpt_tas, 0.436, dir_in, dir_out, -999.)[0] / 1852
 
         turn_rad = calcturn(wpt_tas, 0.436, dir_in, dir_out, -999.)[1]
-        arc_dist = turn_rad * np.radians(np.abs(dir_out - dir_in)) / 1852
+        arc_dist = turn_rad * np.radians(np.abs(degto180(dir_out%360. - dir_in%360.))) / 1852
         # we now have the ingredients to account for the flyby waypoints
-        #print("CHECK TM 1.5: ", tm_remaining, arc_dist, turn_dist)
         tm_remaining = tm_remaining + arc_dist - 2 * turn_dist
-        #print("CHECK TM 2: ", tm_remaining)
 
-    #print("tm rem curve: ", tm_remaining)
     return tm_remaining
 
 # obsolete XXX
@@ -123,13 +120,10 @@ def get_dist_to_next_wpt_curve(traf, idx):
     dist_to_next_wpt = geo.kwikdist(traf.lat[idx], traf.lon[idx], traf.actwp.lat[idx], traf.actwp.lon[idx])
 
     #2. Get the arc along the waypoint and the distance before wpt when turn starts
-    dir_out = np.where(traf.actwp.next_qdr[idx] < -900., traf.actwp.next_qdr[idx], traf.actwp.next_qdr[idx] % 360)
+    dir_out = np.where(traf.actwp.next_qdr[idx] < -900., traf.actwp.next_qdr[idx], traf.actwp.next_qdr[idx] % 360.)
     brg = np.radians(geo.kwikqdrdist(traf.lat[idx], traf.lon[idx], traf.actwp.lat[idx], traf.actwp.lon[idx])[0])
     hdg = np.radians(traf.hdg[idx])
     wpt_tas = traf.tas[idx]
-
-    if np.abs(np.degrees(hdg) - np.degrees(brg)) < 1.0:
-        dir_in = np.degrees(brg)
 
     spd_constr = traf.actwp.nextspd[idx]
     alt_constr = traf.actwp.nextaltco[idx]
@@ -140,20 +134,18 @@ def get_dist_to_next_wpt_curve(traf, idx):
         wpt_tas = traf.tas[idx]
 
     turn_dist_next, turn_rad_next = calcturn(wpt_tas, 0.436, np.degrees(brg), dir_out, -999.)
-    arc_dist_next = turn_rad_next * np.abs(np.radians(dir_out) - brg)
+    arc_dist_next = turn_rad_next * np.radians(np.abs(degto180(dir_out%360. - np.degrees(brg)%360.)))
 
     #3. Add together to get the required distance
 
     # if there is no next waypoint, dir_out is set to -999 and this give quirks when
     # calculating the final section of route, so account for that
-    if dir_out > -360:
+    if dir_out > -360.:
         distance_to_next_incl_arc = dist_to_next_wpt - 2*(turn_dist_next / 1852) + arc_dist_next / 1852
     else:
         distance_to_next_incl_arc = dist_to_next_wpt
 
-    reached = traf.actwp.Reached(brg, dist_to_next_wpt, True, False, -999., False)
-
-    #self, qdr, dist, flyby, flyturn, turnradnm,swlastwp):
+    print("INFO: ", np.degrees(hdg), np.degrees(brg), dir_out, dist_to_next_wpt, turn_dist_next / 1852, arc_dist_next / 1852)
 
     return distance_to_next_incl_arc
 
